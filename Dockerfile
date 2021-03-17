@@ -1,4 +1,4 @@
-FROM apluslms/grading-base:3.1
+FROM apluslms/grading-base:3.2
 
 RUN apt_install \
     g++ \

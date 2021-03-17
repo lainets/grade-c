@@ -4,4 +4,5 @@ RUN apt_install \
     g++ \
     gcc \
     libc-dev \
-    make
+    make \
+    valgrind

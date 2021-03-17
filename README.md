@@ -5,6 +5,7 @@ A+ grading container with C compilers. It contains:
 * `make`
 * `gcc`
 * `g++`
+* `valgrind`
 
 ## Tags
 

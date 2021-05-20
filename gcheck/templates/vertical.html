@@ -1,0 +1,24 @@
+<table class="gcheck gcheck-table gcheck-vertical-table">
+    <tr class="gcheck gcheck-tr gcheck-vertical-tr">
+    {% for header in headers %}
+        <th class="gcheck gcheck-th gcheck-vertical-th">
+            {{header}}
+        </th>
+    {% endfor %}
+    </tr>
+    {% for row in rows %}
+        <tr class="gcheck gcheck-tr gcheck-vertical-tr">
+        {% if row | length == 1 %}
+            <td colspan="{{headers | length}}" class="gcheck gcheck-td gcheck-vertical-td">
+                <pre class="gcheck">{{row[0] | diff('<span style="background-color: red">', '</span>')}}</pre>
+            </td>
+        {% else %}
+            {% for field in row %}
+                <td class="gcheck gcheck-td gcheck-vertical-td">
+                    <pre class="gcheck">{{field | diff('<span style="background-color: red">', '</span>')}}</pre>
+                </td>
+            {% endfor %}
+        {% endif %}
+        </tr>
+    {% endfor %}
+</table>

@@ -1,0 +1,31 @@
+<div class="gcheck gcheck-header title-button {% if obj.points == obj.max_points %}gcheck-collapsed{% endif %} gcheck-{% if obj.points == obj.max_points %}fullpoints{% elif obj.points == 0 %}zeropoints{% else %}partialpoints{% endif %}" onclick="gcheck_toggle(this);">
+    <i class="gcheck-arrow gcheck-up"></i><i class="gcheck-arrow gcheck-down"></i> {{obj.suite}}: {{obj.test}} {{obj.points | round(2)}}/{{obj.max_points | round(2)}}
+</div>
+<div class="gcheck gcheck-content">
+{% if obj.status == Status.Started %}
+    Timed out or crashed
+{% elif obj.status == Status.TimedOut%}
+    Timed out
+{% elif not obj.prerequisite.fullfilled %}
+    <div class="gcheck gcheck-prereqs">
+        Prerequisites weren't fullfilled:
+        {% for detail in obj.prerequisite.details %}
+            {% if not detail.fullfilled %}
+                <div class="gcheck gcheck-prereq">
+                    - {{detail.suite}}: {{detail.test}}
+                </div>
+            {% endif %}
+        {% endfor %}
+    </div>
+{% elif obj.status == Status.NotStarted %}
+    Test wasn't started due to the program halting.
+{% elif results | length == 0 %}
+    <div class="gcheck gcheck-noresults">
+        Nothing to show
+    </div>
+{% else %}
+    {% for result in results %}
+        {{ render_result(result, format) | safe }}
+    {% endfor %}
+{% endif %}
+</div>

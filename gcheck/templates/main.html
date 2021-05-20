@@ -1,0 +1,10 @@
+{% set stdio = render_stdio() %}
+<div class="gcheck gcheck-header {% if stdio == '' %}gcheck-collapsed{% endif %}" onclick="gcheck_toggle(this);">
+    <i class="gcheck-arrow gcheck-up"></i><i class="gcheck-arrow gcheck-down"></i> Stdio
+</div>
+<pre class="gcheck gcheck-console gcheck-stdio">{{ stdio }}</pre>
+<div class="gcheck gcheck-tests">
+{% for test in tests %}
+    {{ render_test(test) | safe }}
+{% endfor %}
+</div>

@@ -1,0 +1,22 @@
+<table class="gcheck gcheck-table gcheck-horizontal-table">
+{% for i in range(headers | length) %}
+    <tr class="gcheck gcheck-tr gcheck-horizontal-tr">
+        <th class="gcheck gcheck-th gcheck-horizontal-th">
+            {{headers[i]}}
+        </th>
+    {% for row in rows %}
+        {% if row | length == 1 %}
+            {% if i == 0 %}
+                <td rowspan="{{headers | length}}" class="gcheck gcheck-td gcheck-horizontal-td">
+                    <pre class="gcheck">{{row[0] | diff('<span style="background-color: red">', '</span>')}}</pre>
+                </td>
+            {% endif %}
+        {% else %}
+            <td class="gcheck gcheck-td gcheck-horizontal-td">
+                <pre class="gcheck">{{row[i] | diff('<span style="background-color: red">', '</span>')}}</pre>
+            </td>
+        {% endif %}
+    {% endfor %}
+    </tr>
+{% endfor %}
+</table>

@@ -1,0 +1,21 @@
+<div class="gcheck gcheck-header {% if compile_output == '' %}gcheck-collapsed{% endif %}" onclick="gcheck_toggle(this);">
+    <i class="gcheck-arrow gcheck-up"></i><i class="gcheck-arrow gcheck-down"></i> Compile Output
+</div>
+<pre class="gcheck gcheck-console">{{compile_output}}</pre>
+{% if valgrind_output is not none %}
+<div class="gcheck gcheck-header {% if valgrind_output == '' %}gcheck-collapsed{% endif %}" onclick="gcheck_toggle(this);">
+    <i class="gcheck-arrow gcheck-up"></i><i class="gcheck-arrow gcheck-down"></i> Valgrind Output
+</div>
+<pre class="gcheck gcheck-console">{{valgrind_output}}</pre>
+{% endif %}
+<div class="gcheck gcheck-header {% if not penalties %}gcheck-collapsed{% endif %}" onclick="gcheck_toggle(this);">
+    <i class="gcheck-arrow gcheck-up"></i><i class="gcheck-arrow gcheck-down"></i> Penalties
+</div>
+<div class="gcheck">
+{% for p, v in penalties.items() %}
+    <div class="gcheck-penalty">
+        {{p}}: -{{v*100}}%
+    </div>
+{% endfor %}
+</div>
+{{ beautify.render_main() | safe }}

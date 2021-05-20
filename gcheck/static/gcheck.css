@@ -1,0 +1,98 @@
+table.gcheck.gcheck-table {
+    padding: 0;
+    margin: 0;
+    background-color: white;
+}
+
+tr.gcheck.gcheck-tr {
+    padding: 0;
+    margin: 0;
+    border: 1px solid black;
+}
+
+th.gcheck.gcheck-th {
+    padding: 0;
+    margin: 0;
+    padding-left: 3px;
+    border: 1px solid black;
+    white-space: nowrap;
+}
+
+.gcheck-header {
+    padding-left: 4px;
+}
+
+td.gcheck.gcheck-td {
+    padding: 0;
+    margin: 0;
+    border: 1px solid black;
+    white-space: nowrap;
+}
+
+table.gcheck tr.gcheck td.gcheck.gcheck-td pre {
+    padding: 0;
+    margin: 0;
+    background-color: inherit;
+    padding-left: 3px;
+    padding-right: 3px;
+}
+
+.title-button.gcheck-fullpoints {
+    background-color: #99ff7a !important;
+}
+.title-button.gcheck-partialpoints {
+    background-color: #ffd270 !important;
+}
+.title-button.gcheck-zeropoints {
+    background-color: #ff7575 !important;
+}
+
+.gcheck-penalty {
+    background-color: #ff5b5b !important;
+    padding-left: 5px;
+}
+
+div.gcheck.gcheck-content {
+    overflow: auto;
+    width: 50vw;
+}
+
+.gcheck-console {
+    background-color: black;
+    color: gainsboro;
+}
+
+pre.console.gcheck.gcheck-stdio {
+    margin: 0;
+}
+
+.gcheck-td pre.gcheck {
+    border-radius: 0;
+}
+
+.gcheck-header.gcheck-collapsed + .gcheck {
+    display: none;
+}
+
+.gcheck-arrow {
+    border: solid black;
+    border-width: 0 3px 3px 0;
+    display: inline-block;
+    padding: 3px;
+}
+
+.gcheck-up {
+  transform: scale(0.8) rotate(-135deg) translate(-12.5%, -12.5%);
+  -webkit-transform: scale(0.8) rotate(-135deg) translate(-12.5%, -12.5%);
+}
+:not(.gcheck-collapsed) > .gcheck-up {
+    display: none;
+}
+
+.gcheck-down {
+  transform: scale(0.8) rotate(45deg) translate(-12.5%, -12.5%);
+  -webkit-transform: scale(0.8) rotate(45deg) translate(-12.5%, -12.5%);
+}
+.gcheck-collapsed > .gcheck-down {
+    display: none;
+}

@@ -1,11 +1,15 @@
 # grade-c
 
-A+ grading container with C compilers. It contains:
+[A+] grading container with C compilers. It contains:
 
 * `make`
 * `gcc`
 * `g++`
 * `valgrind`
+* [gcheck]
+
+[gcheck]: https://github.com/lainets/gcheck
+[A+]: https://github.com/apluslms/a-plus
 
 ## Tags
 

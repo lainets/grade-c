@@ -1,0 +1,3 @@
+[submodule "gcheck/gcheck"]
+	path = gcheck/gcheck
+	url = git@github.com:lainets/gcheck.git

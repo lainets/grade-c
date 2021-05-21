@@ -1,4 +1,5 @@
-FROM apluslms/grading-base:3.2
+ARG BASE_TAG=latest
+FROM apluslms/grading-base:$BASE_TAG
 
 RUN apt_install \
     g++ \

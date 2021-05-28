@@ -182,6 +182,9 @@ with Grader(config["max_points"], config["penalty_type"]) as grader:
             if file.is_file():
                 testsources.append(str(file))
 
+    if not testsources:
+        raise Failed("Problem with exercise configuration. Please contact course staff.", "No test sources found. Make sure the exercise config is correct.")
+
     includedirs = load_list(config, "includedirs")
     includedirs = [d if Path(d).is_absolute() else "/exercise/" + d for d in includedirs]
     includedirs = ["-I" + d for d in includedirs]

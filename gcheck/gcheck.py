@@ -272,16 +272,18 @@ with Grader(config["max_points"], config["penalty_type"]) as grader:
         try:
             report = Report("/output.json")
         except Exception as e:
-            raise Failed("Error opening test output. Please contact course staff if this persists.", f"Error opening test output.\n{str(e)}:\n{traceback.format_exc()}")
+            grader.beautify = Beautify(Report(), "/templates")
+            grader.compile_output += "\nFailed to open test output\n"
+            grading_script_error(f"Error opening test output.\n{str(e)}:\n{traceback.format_exc()}\n")
+        else:
+            if grader.max_points is not None:
+                report.scale_points(grader.max_points)
 
-        if grader.max_points is not None:
-            report.scale_points(grader.max_points)
+            grader.addPoints(report.points)
 
-        grader.addPoints(report.points)
-
-        try:
-            grader.beautify = Beautify(report, "/templates")
-        except Exception as e:
-            raise Failed("Error rendering test output. Please contact course staff if this persists.", f"Error rendering test output. (initializing Beautify)\n{str(e)}:\n{traceback.format_exc()}")
+            try:
+                grader.beautify = Beautify(report, "/templates")
+            except Exception as e:
+                raise Failed("Error rendering test output. Please contact course staff if this persists.", f"Error rendering test output. (initializing Beautify)\n{str(e)}:\n{traceback.format_exc()}")
     else:
         grader.beautify = Beautify(Report(), "/templates")

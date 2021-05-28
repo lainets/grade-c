@@ -54,7 +54,7 @@ table.gcheck tr.gcheck td.gcheck.gcheck-td pre {
 
 div.gcheck.gcheck-content {
     overflow: auto;
-    width: 50vw;
+    width: 100%;
 }
 
 .gcheck-console {

@@ -82,7 +82,7 @@ class Grader:
             if self.beautify is not None:
                 try:
                     with open("/feedback/out", "w") as f:
-                        f.write(self.beautify.render("all.html", beautify=self.beautify, compile_output=grader.compile_output, valgrind_output=grader.valgrind_output, penalties=self.penalties).replace("\0", "\x00"))
+                        f.write(self.beautify.render("all.html", beautify=self.beautify, compile_output=grader.compile_output, valgrind_output=grader.valgrind_output, penalties=self.penalties).replace("\0", "\1"))
                 except Exception as e:
                     value = Failed("Error rendering test output. Please contact course staff if this persists.", f"Error rendering test output. (rendering Beautify)\n{str(e)}:\n{traceback.format_exc()}")
                     typ = Failed

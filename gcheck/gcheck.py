@@ -8,7 +8,7 @@ import argparse
 from time import perf_counter
 from pathlib import Path
 
-from report_parser import Report
+from report_parser import Report, Type
 from beautify import Beautify
 
 def grading_script_error(str):
@@ -82,7 +82,7 @@ class Grader:
             if self.beautify is not None:
                 try:
                     with open("/feedback/out", "w") as f:
-                        f.write(self.beautify.render("all.html", beautify=self.beautify, compile_output=grader.compile_output, valgrind_output=grader.valgrind_output, penalties=self.penalties))
+                        f.write(self.beautify.render("all.html", beautify=self.beautify, compile_output=grader.compile_output, valgrind_output=grader.valgrind_output, penalties=self.penalties).replace("\0", "\x00"))
                 except Exception as e:
                     value = Failed("Error rendering test output. Please contact course staff if this persists.", f"Error rendering test output. (rendering Beautify)\n{str(e)}:\n{traceback.format_exc()}")
                     typ = Failed
@@ -276,6 +276,10 @@ with Grader(config["max_points"], config["penalty_type"]) as grader:
             grader.compile_output += "\nFailed to open test output\n"
             grading_script_error(f"Error opening test output.\n{str(e)}:\n{traceback.format_exc()}\n")
         else:
+            """for t in report.tests:
+                for r in t.results:
+                    for c in r.cases:
+                        c.output.string += '\0'"""
             if grader.max_points is not None:
                 report.scale_points(grader.max_points)
 

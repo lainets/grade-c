@@ -8,7 +8,7 @@ import argparse
 from time import perf_counter
 from pathlib import Path
 
-from report_parser import Report, Type
+from report_parser import Report
 from beautify import Beautify
 
 def grading_script_error(str):
@@ -276,10 +276,6 @@ with Grader(config["max_points"], config["penalty_type"]) as grader:
             grader.compile_output += "\nFailed to open test output\n"
             grading_script_error(f"Error opening test output.\n{str(e)}:\n{traceback.format_exc()}\n")
         else:
-            """for t in report.tests:
-                for r in t.results:
-                    for c in r.cases:
-                        c.output.string += '\0'"""
             if grader.max_points is not None:
                 report.scale_points(grader.max_points)
 

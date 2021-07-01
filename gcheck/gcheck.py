@@ -148,19 +148,19 @@ def has_warning(process):
     in_stderr = process.stderr is not None and ": warning:" in process.stderr.decode('utf-8')
     return in_stdout or in_stderr
 
-try:
-    config = {
-        "penalty_type": "multiplicative",
-        "max_points": None,
-        "penalties": {
-        },
-        "valgrind": False,
-        "valgrind_options": [
-            "--track-origins=yes",
-            "--leak-check=full",
-        ]
-    }
+config = {
+    "penalty_type": "multiplicative",
+    "max_points": None,
+    "penalties": {
+    },
+    "valgrind": False,
+    "valgrind_options": [
+        "--track-origins=yes",
+        "--leak-check=full",
+    ]
+}
 
+try:
     if Path("/exercise/gcheck.yaml").exists():
         import yaml
         with open("/exercise/gcheck.yaml") as f:
@@ -169,8 +169,13 @@ try:
         import json
         with open("/exercise/gcheck.json") as f:
             config.update(json.load(f))
-except:
-    pass
+except Exception as e:
+    grading_script_error(f"Failed to read gcheck config file:\n{traceback}")
+
+    with open("/feedback/out", "w") as f:
+        f.write("Error in grading script. Please contact course staff if this persists.")
+    give_points(0, 1)
+    exit(0)
 
 with Grader(config["max_points"], config["penalty_type"]) as grader:
     env = {}

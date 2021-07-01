@@ -110,10 +110,25 @@ def run(cmd, **kwargs):
     return " ".join(cmd), subprocess.run(cmd, capture_output=True, **kwargs)
 
 def load_list(config, key, additions=[], default=[]):
+    def listify(data):
+        if isinstance(data, str):
+            data = data.split(" ")
+            data = [d for d in data if d != ""]
+        return data
+
     data = config.get(key, default)
-    if isinstance(data, str):
-        data = data.split(" ")
-        data = [d for d  in data if d != ""]
+    data = listify(data)
+
+    minusdata = config.get(key+"-", None)
+    if minusdata is not None:
+        minusdata = listify(minusdata)
+        data = [d for d in data if d not in minusdata]
+
+    adddata = config.get(key+"+", None)
+    if adddata is not None:
+        adddata = listify(adddata)
+        data += adddata
+
     return data + additions
 
 def process_output(process):

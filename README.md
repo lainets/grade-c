@@ -96,6 +96,8 @@ The config file can have the following fields:
         `-I<GCHECK_INCLUDE_DIR>` is always appended.
         `-std=c++17` is appended if no other standard is specified.
 
+In addition, it is possible to append a '+' or '-' to add or remove flags from the defaults. E.g. `CFLAGS+: -Werror` adds the `-Werror` flag to the default `-std=c99 -g -Wall -Wextra -Wno-missing-field-initializers` flags. `CFLAGS-: -Wall` would then remove the `-Wall` flag from the defaults. This only works for options that take a list, i.e. the compilation flags and `includedirs`.
+
 ## Submitted files
 
 Submitted files are assumed to be C++ or C files if they end in .cpp or .c, respectively. Other files are not compiled.

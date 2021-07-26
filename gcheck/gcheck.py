@@ -7,6 +7,8 @@ import traceback
 import argparse
 from time import perf_counter
 from pathlib import Path
+import signal
+from contextlib import contextmanager
 
 from report_parser import Report
 from beautify import Beautify
@@ -106,6 +108,26 @@ class Grader:
 
         give_points(self.points*self.fraction, self.max_points)
 
+# the subprocess timeout doesn't seem to work correctly for long timeouts
+# so we use signals
+def timeout_handler(signum, frame):
+    raise Failed("Submission timed out. Check that there are no infinite loops", f"Submission timed out.\ntimeout: {config['timeout']}")
+signal.signal(signal.SIGALRM, timeout_handler)
+
+@contextmanager
+def Timeout(timeout):
+    if timeout is None:
+        signal.alarm(0)
+    elif timeout == 0:
+        timeout_handler(None, None)
+    else:
+        signal.alarm(timeout)
+
+        try:
+            yield
+        finally:
+            signal.alarm(0)
+
 def run(cmd, **kwargs):
     return " ".join(cmd), subprocess.run(cmd, capture_output=True, **kwargs)
 
@@ -157,7 +179,8 @@ config = {
     "valgrind_options": [
         "--track-origins=yes",
         "--leak-check=full",
-    ]
+    ],
+    "timeout": 180,
 }
 
 try:
@@ -276,7 +299,9 @@ with Grader(config["max_points"], config["penalty_type"]) as grader:
     if not compile_error:
         if config["valgrind"]:
             valgrind_filename = "/valgrind_out.txt"
-            cmd, process = run(["valgrind", "-q", "--trace-children=yes", "--log-file=" + valgrind_filename] + config["valgrind_options"] + ["./test", "--safe", "--json", "/output.json"])
+
+            with Timeout(config["timeout"]):
+                cmd, process = run(["valgrind", "-q", "--trace-children=yes", "--log-file=" + valgrind_filename] + config["valgrind_options"] + ["./test", "--json", "/output.json"])
 
             try:
                 with open(valgrind_filename, 'r') as f:
@@ -284,7 +309,8 @@ with Grader(config["max_points"], config["penalty_type"]) as grader:
             except Exception as e:
                 raise Failed("Error opening valgrind output. Please contact course staff if this persists.", f"Error opening valgrind output.\n{str(e)}:\n{traceback.format_exc()}")
         else:
-            cmd, process = run(["./test", "--safe", "--json", "/output.json"])
+            with Timeout(config["timeout"]):
+                cmd, process = run(["./test", "--safe", "--json", "/output.json"])
 
         grader.compile_output += cmd + "\n"
         grader.compile_output += process_output(process)

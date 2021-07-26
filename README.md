@@ -95,6 +95,9 @@ The config file can have the following fields:
         Flags for the compiler used for the test sources.
         `-I<GCHECK_INCLUDE_DIR>` is always appended.
         `-std=c++17` is appended if no other standard is specified.
+    timeout, 180
+        Timeout in seconds. The gcheck process is killed if it takes longer than this.
+        Set to null for no timeout.
 
 In addition, it is possible to append a '+' or '-' to add or remove flags from the defaults. E.g. `CFLAGS+: -Werror` adds the `-Werror` flag to the default `-std=c99 -g -Wall -Wextra -Wno-missing-field-initializers` flags. `CFLAGS-: -Wall` would then remove the `-Wall` flag from the defaults. This only works for options that take a list, i.e. the compilation flags and `includedirs`.
 

@@ -200,6 +200,13 @@ except Exception as e:
     give_points(0, 1)
     exit(0)
 
+def absolute_path(path, default_root):
+    path = Path(path)
+    if path.is_absolute():
+        return path
+    else:
+        return default_root / path
+
 with Grader(config["max_points"], config["penalty_type"]) as grader:
     env = {}
     with open("/gcheck.env") as f:
@@ -209,24 +216,25 @@ with Grader(config["max_points"], config["penalty_type"]) as grader:
         env = {k: v for k, v in pairs}
 
     testsources = []
-    if config.get("testsource", None):
-        if Path(config["testsource"]).is_absolute():
-            testsources = [config["testsource"]]
-        else:
-            testsources = [str(Path("/exercise") / config["testsource"])]
-    elif config.get("testsourcedir", "/exercise"):
-        path = Path(config.get("testsourcedir", "/exercise"))
-        if not path.is_absolute():
-            path = Path("/exercise") / path
-        for file in os.listdir(path):
-            if not file.endswith(".cpp"):
-                continue
-            file = path / file
-            if file.is_file():
-                testsources.append(str(file))
+    if "testsource" in config:
+        paths = load_list(config, "testsource")
+        testsources = [str(absolute_path(f, "/exercise")) for f in paths]
+
+    if len(testsources) == 0 or "testsourcedir" in config:
+        paths = load_list(config, "testsourcedir", ["/exercise"])
+        for path in paths:
+            path = absolute_path(path, "/exercise")
+            for file in os.listdir(path):
+                if file.endswith(".cpp") or file.endswith(".c"):
+                    file = path / file
+                    if file.is_file():
+                        testsources.append(str(file))
 
     if not testsources:
         raise Failed("Problem with exercise configuration. Please contact course staff.", "No test sources found. Make sure the exercise config is correct.")
+
+    testsources_c = [f for f in testsources if f.endswith(".c")]
+    testsources_cpp = [f for f in testsources if f.endswith(".cpp")]
 
     includedirs = load_list(config, "includedirs")
     includedirs = [d if Path(d).is_absolute() else "/exercise/" + d for d in includedirs]
@@ -241,6 +249,7 @@ with Grader(config["max_points"], config["penalty_type"]) as grader:
     submission_files_cpp = [f for f in submission_files if f.endswith(".cpp")]
 
     TESTCPPFLAGS = load_list(config, "TESTCPPFLAGS", ["-c", "-isystem", env["GCHECK_DIR"]] + includedirs)
+    TESTCFLAGS = load_list(config, "TESTCFLAGS", default=env['TESTCFLAGS'])
     TESTCXXFLAGS = load_list(config, "TESTCXXFLAGS", [f"-I{env['GCHECK_INCLUDE_DIR']}"])
     CPPFLAGS = load_list(config, "CPPFLAGS", ["-c"] + includedirs, env['CPPFLAGS'])
     CFLAGS = load_list(config, "CFLAGS", default=env['CFLAGS'])
@@ -250,6 +259,8 @@ with Grader(config["max_points"], config["penalty_type"]) as grader:
 
     if not any(p.strip().startswith("-std=") for p in TESTCXXFLAGS):
         TESTCXXFLAGS = TESTCXXFLAGS + ["-std=c++17"]
+    if not any(p.strip().startswith("-std=") for p in TESTCFLAGS):
+        TESTCFLAGS = TESTCFLAGS + ["-std=c99"]
     if not any(p.strip().startswith("-std=") for p in CXXFLAGS):
         CXXFLAGS = CXXFLAGS + ["-std=c++17"]
     if not any(p.strip().startswith("-std=") for p in CFLAGS):
@@ -276,8 +287,19 @@ with Grader(config["max_points"], config["penalty_type"]) as grader:
         grader.compile_output += process_output(process)
         CPPOBJECTS.append(cppfile[:-4] + ".o")
 
-    TESTOBJECTS = []
-    for cppfile in testsources:
+    TESTCOBJECTS = []
+    for cfile in testsources_c:
+        outfile = cfile[:-2] + ".o"
+        outfile = "/submission/user/" + str(Path(outfile).name)
+        cmd, process = run(["gcc", *TESTCPPFLAGS, *TESTCFLAGS, cfile, "-o", outfile])
+        compile_error = compile_error or process.returncode != 0
+        compile_warning = compile_warning or has_warning(process)
+        grader.compile_output += cmd + "\n"
+        grader.compile_output += process_output(process)
+        TESTCOBJECTS.append(outfile)
+
+    TESTCPPOBJECTS = []
+    for cppfile in testsources_cpp:
         outfile = cppfile[:-4] + ".o"
         outfile = "/submission/user/" + str(Path(outfile).name)
         cmd, process = run(["g++", *TESTCPPFLAGS, *TESTCXXFLAGS, cppfile, "-o", outfile])
@@ -285,9 +307,9 @@ with Grader(config["max_points"], config["penalty_type"]) as grader:
         compile_warning = compile_warning or has_warning(process)
         grader.compile_output += cmd + "\n"
         grader.compile_output += process_output(process)
-        TESTOBJECTS.append(outfile)
+        TESTCPPOBJECTS.append(outfile)
 
-    cmd, process = run(["g++", *TESTOBJECTS, *CPPOBJECTS, *COBJECTS, *LDFLAGS, *LDLIBS, "-o", "test"])
+    cmd, process = run(["g++", *TESTCPPOBJECTS, *TESTCOBJECTS, *CPPOBJECTS, *COBJECTS, *LDFLAGS, *LDLIBS, "-o", "test"])
     compile_error = compile_error or process.returncode != 0
     compile_warning = compile_warning or has_warning(process)
     grader.compile_output += cmd + "\n"

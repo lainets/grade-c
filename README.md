@@ -68,11 +68,10 @@ The config file can have the following fields:
     includedirs, ""
         A list or space separated string of include directories for compiling. Either absolute or relative to the exercise directory.
     testsource, None
-        Test source file. Either absolute or relative to the exercise directory. If not specified, uses all *.cpp files found in testsourcedir
-    testsourcedir, /exercise
-        Test source file directory. Either absolute or relative to the exercise directory.
-        Used only if testsource is not specified.
-        All *.cpp files found in testsourcedir are used as test sources.
+        A list or space separated string of test sources to be compiled. Either absolute or relative to the exercise directory.
+    testsourcedir, None ("/exercise" if neither this or testsource is specified)
+        A list or space separated string of directories of test sources to be compiled. Either absolute or relative to the exercise directory.
+        All *.cpp and *.c files found in these directories are used as test sources.
     CPPFLAGS, ""
         Flags for the compiler used for both c++ and c files.
         `-c` and include directories defined by includedirs are always appended.
@@ -89,8 +88,11 @@ The config file can have the following fields:
         Flags for the linker.
         `-L<GCHECK_LIB_DIR>` is always appended.
     TESTCPPFLAGS, ""
-        Flags for the compiler used for the test sources.
+        Flags for the compiler used for the .cpp test sources.
         `-c -isystem <GCHECK_DIR>` is always appended.
+    TESTCFLAGS, ""
+        Flags for the compiler used for the .c test sources.
+        `-std=c99` is appended if no other standard is specified.
     TESTCXXFLAGS, -std=c++17 -g -Wall
         Flags for the compiler used for the test sources.
         `-I<GCHECK_INCLUDE_DIR>` is always appended.

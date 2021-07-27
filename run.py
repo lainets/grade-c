@@ -1,34 +1,26 @@
 #!/usr/bin/env python3
 
 import os
-import sys
-import subprocess
 import traceback
 import argparse
 from time import perf_counter
 from pathlib import Path
 import signal
 from contextlib import contextmanager
+from importlib.util import spec_from_file_location, module_from_spec
+from typing import Type
+from util import read_env
 
-from report_parser import Report
 from beautify import Beautify
+from report_parser import Report
 
-def grading_script_error(str):
-    print(str)
+from util import grading_script_error, Failed, run, process_output, read_env, RunnerBase, load_list
 
 def give_points(points, max_points):
     if max_points is None:
         max_points = 1
     with open("/feedback/points", "w") as f:
         f.write(f"{round(points)}/{max_points}")
-
-class Failed(BaseException):
-    def __init__(self, msg, error):
-        self.msg = msg
-        self.error = error
-
-    def __str__(self):
-        return str(self.msg)
 
 class Grader:
     multiplicative_types = ["multiplicative", "mult", "m"]
@@ -46,7 +38,7 @@ class Grader:
 
         self.compile_output = ""
         self.valgrind_output = None
-        self.beautify = None
+        self.render = None
         self.penalties = {}
 
     def setPoints(self, points, max_points = None):
@@ -81,10 +73,10 @@ class Grader:
             grader.addPenalty("valgrind", config["penalties"]["valgrind"])
 
         if typ is None:
-            if self.beautify is not None:
+            if self.render is not None:
                 try:
                     with open("/feedback/out", "w") as f:
-                        f.write(self.beautify.render("all.html", beautify=self.beautify, compile_output=grader.compile_output, valgrind_output=grader.valgrind_output, penalties=self.penalties).replace("\0", "\1"))
+                        f.write(self.render(compile_output=grader.compile_output, valgrind_output=grader.valgrind_output, penalties=self.penalties).replace("\0", "\1"))
                 except Exception as e:
                     value = Failed("Error rendering test output. Please contact course staff if this persists.", f"Error rendering test output. (rendering Beautify)\n{str(e)}:\n{traceback.format_exc()}")
                     typ = Failed
@@ -128,42 +120,6 @@ def Timeout(timeout):
         finally:
             signal.alarm(0)
 
-def run(cmd, **kwargs):
-    return " ".join(cmd), subprocess.run(cmd, capture_output=True, **kwargs)
-
-def load_list(config, key, additions=[], default=[]):
-    def listify(data):
-        if isinstance(data, str):
-            data = data.split(" ")
-            data = [d for d in data if d != ""]
-        return data
-
-    data = config.get(key, default)
-    data = listify(data)
-
-    minusdata = config.get(key+"-", None)
-    if minusdata is not None:
-        minusdata = listify(minusdata)
-        data = [d for d in data if d not in minusdata]
-
-    adddata = config.get(key+"+", None)
-    if adddata is not None:
-        adddata = listify(adddata)
-        data += adddata
-
-    return data + additions
-
-def process_output(process):
-    output = ""
-    if process.stdout is not None:
-        output += process.stdout.decode('UTF-8')
-    if process.stderr is not None:
-        if output:
-            output += "\n"
-        output += process.stderr.decode('UTF-8')
-    if output:
-        output += "\n"
-    return output
 
 def has_warning(process):
     in_stdout = process.stdout is not None and ": warning:" in process.stdout.decode('utf-8')
@@ -171,6 +127,7 @@ def has_warning(process):
     return in_stdout or in_stderr
 
 config = {
+    "runner": "/gcheck/run.py",
     "penalty_type": "multiplicative",
     "max_points": None,
     "penalties": {
@@ -207,13 +164,26 @@ def absolute_path(path, default_root):
     else:
         return default_root / path
 
+def import_runner(path) -> Type[RunnerBase]:
+    path = Path(path)
+    module_name = path.stem
+
+    spec = spec_from_file_location(module_name, path)
+    if not spec:
+        raise Failed("Problem with exercise configuration. Please contact course staff.", "Runner source file not found")
+
+    module = module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    return getattr(module, "Runner")
+
+
 with Grader(config["max_points"], config["penalty_type"]) as grader:
-    env = {}
-    with open("/gcheck.env") as f:
-        lines = f.readlines()
-        pairs = [line.strip().split("=", 1) for line in lines]
-        pairs = [p for p in pairs if len(p) == 2]
-        env = {k: v for k, v in pairs}
+    runner_cls = import_runner(config["runner"])
+    runner = runner_cls()
+
+    env = read_env("/compile.env")
+    env = runner.get_env(env)
 
     testsources = []
     if "testsource" in config:
@@ -230,7 +200,7 @@ with Grader(config["max_points"], config["penalty_type"]) as grader:
                     if file.is_file():
                         testsources.append(str(file))
 
-    if not testsources:
+    if not runner.allow_zero_test_sources and not testsources:
         raise Failed("Problem with exercise configuration. Please contact course staff.", "No test sources found. Make sure the exercise config is correct.")
 
     testsources_c = [f for f in testsources if f.endswith(".c")]
@@ -248,14 +218,16 @@ with Grader(config["max_points"], config["penalty_type"]) as grader:
     submission_files_c = [f for f in submission_files if f.endswith(".c")]
     submission_files_cpp = [f for f in submission_files if f.endswith(".cpp")]
 
-    TESTCPPFLAGS = load_list(config, "TESTCPPFLAGS", ["-c", "-isystem", env["GCHECK_DIR"]] + includedirs)
-    TESTCFLAGS = load_list(config, "TESTCFLAGS", default=env['TESTCFLAGS'])
-    TESTCXXFLAGS = load_list(config, "TESTCXXFLAGS", [f"-I{env['GCHECK_INCLUDE_DIR']}"])
-    CPPFLAGS = load_list(config, "CPPFLAGS", ["-c"] + includedirs, env['CPPFLAGS'])
-    CFLAGS = load_list(config, "CFLAGS", default=env['CFLAGS'])
-    CXXFLAGS = load_list(config, "CXXFLAGS", default=env['CXXFLAGS'])
-    LDFLAGS = load_list(config, "LDFLAGS", [f"-L{env['GCHECK_LIB_DIR']}"], env['LDFLAGS'])
-    LDLIBS = load_list(config, "LDLIBS", [f"-l{env['GCHECK_LIB']}"], env['LDLIBS'])
+    add_flags = runner.additional_flags(env, config)
+
+    TESTCPPFLAGS = load_list(config, "TESTCPPFLAGS", ["-c"] + add_flags.get("TESTCPPFLAGS", []) + includedirs)
+    TESTCFLAGS = load_list(config, "TESTCFLAGS", add_flags.get("TESTCFLAGS", []), env['TESTCFLAGS'])
+    TESTCXXFLAGS = load_list(config, "TESTCXXFLAGS", add_flags.get("TESTCXXFLAGS", []))
+    CPPFLAGS = load_list(config, "CPPFLAGS", ["-c"] + add_flags.get("CPPFLAGS", []) + includedirs, env['CPPFLAGS'])
+    CFLAGS = load_list(config, "CFLAGS", add_flags.get("CFLAGS", []) + [], env['CFLAGS'])
+    CXXFLAGS = load_list(config, "CXXFLAGS", add_flags.get("CXXFLAGS", []), env['CXXFLAGS'])
+    LDFLAGS = load_list(config, "LDFLAGS", add_flags.get("LDFLAGS", []), env['LDFLAGS'])
+    LDLIBS = load_list(config, "LDLIBS", add_flags.get("LDLIBS", []), env['LDLIBS'])
 
     if not any(p.strip().startswith("-std=") for p in TESTCXXFLAGS):
         TESTCXXFLAGS = TESTCXXFLAGS + ["-std=c++17"]
@@ -319,11 +291,12 @@ with Grader(config["max_points"], config["penalty_type"]) as grader:
         grader.addPenalty('warning', config['penalties']['warning'])
 
     if not compile_error:
+        grader.render = runner.render
         if config["valgrind"]:
             valgrind_filename = "/valgrind_out.txt"
 
             with Timeout(config["timeout"]):
-                cmd, process = run(["valgrind", "-q", "--trace-children=yes", "--log-file=" + valgrind_filename] + config["valgrind_options"] + ["./test", "--json", "/output.json"])
+                output = runner.run(["valgrind", "-q", "--trace-children=yes", "--log-file=" + valgrind_filename] + config["valgrind_options"] + ["./test"], config, grader.max_points)
 
             try:
                 with open(valgrind_filename, 'r') as f:
@@ -332,26 +305,13 @@ with Grader(config["max_points"], config["penalty_type"]) as grader:
                 raise Failed("Error opening valgrind output. Please contact course staff if this persists.", f"Error opening valgrind output.\n{str(e)}:\n{traceback.format_exc()}")
         else:
             with Timeout(config["timeout"]):
-                cmd, process = run(["./test", "--safe", "--json", "/output.json"])
+                output = runner.run(["./test"], config, grader.max_points)
 
-        grader.compile_output += cmd + "\n"
-        grader.compile_output += process_output(process)
+        grader.compile_output += output + "\n"
 
-        try:
-            report = Report("/output.json")
-        except Exception as e:
-            grader.beautify = Beautify(Report(), "/templates")
-            grader.compile_output += "\nFailed to open test output\n"
-            grading_script_error(f"Error opening test output.\n{str(e)}:\n{traceback.format_exc()}\n")
-        else:
-            if grader.max_points is not None:
-                report.scale_points(grader.max_points)
-
-            grader.addPoints(report.points)
-
-            try:
-                grader.beautify = Beautify(report, "/templates")
-            except Exception as e:
-                raise Failed("Error rendering test output. Please contact course staff if this persists.", f"Error rendering test output. (initializing Beautify)\n{str(e)}:\n{traceback.format_exc()}")
+        grader.setPoints(runner.points(), runner.max_points())
     else:
-        grader.beautify = Beautify(Report(), "/templates")
+        def default_renderer(**kwargs):
+            beautify = Beautify(Report(), "/gcheck/templates")
+            return beautify.render("all.html", beautify=beautify, **kwargs)
+        grader.render = default_renderer

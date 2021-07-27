@@ -10,25 +10,31 @@ RUN apt_install \
     python3 \
     python3-pip
 
-COPY gcheck/templates /templates
-
-COPY gcheck/gcheck /gcheck
-RUN rm -rf /gcheck/.git
-
-RUN make -C /gcheck static
-
-ENV PYTHONPATH "${PYTHONPATH}:/gcheck/tools"
-
 RUN python3 -m pip install jinja2 pyyaml
 
+# gcheck files
+COPY gcheck/run.py /gcheck/run.py
+COPY gcheck/templates /gcheck/templates
+COPY gcheck/gcheck /gcheck/gcheck
+RUN rm -rf /gcheck/gcheck/.git
+
+RUN make -C /gcheck/gcheck static
+
+COPY util.py /util.py
+
+
+ENV PYTHONPATH "${PYTHONPATH}:/gcheck/gcheck/tools:/"
+
 # The build flags
-COPY gcheck/gcheck.env /gcheck.env
-# Append the gcheck variables to /gcheck.env
+COPY compile.env /compile.env
+COPY compile.env /gcheck/gcheck.env
+# Add the gcheck build flags to /gcheck/gcheck.env
 COPY gcheck/Makefile /Makefile
-RUN printf "\n" >> /gcheck.env
-RUN make -s -C / >> /gcheck.env
+RUN printf "\n" >> /gcheck/gcheck.env
+RUN make -s -C / >> /gcheck/gcheck.env
 RUN rm /Makefile
 
-COPY gcheck/gcheck.py /entrypoint/
-RUN chmod +x /entrypoint/gcheck.py
-CMD ["/entrypoint/gcheck.py"]
+
+COPY run.py /entrypoint/
+RUN chmod +x /entrypoint/run.py
+CMD ["/entrypoint/run.py"]

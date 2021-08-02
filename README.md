@@ -7,7 +7,7 @@
 * `g++`
 * `valgrind`
 * [gcheck]
-* An optional utility script for gcheck (`gcheck.py` described below)
+* An optional utility script for gcheck and others (`/entrypoint/run.py` described below)
 
 [gcheck]: https://github.com/lainets/gcheck
 [A+]: https://github.com/apluslms/a-plus
@@ -24,13 +24,13 @@ for example, `8.3-1.0-3.4`.
 
 # Container Config
 
-The cmd can be either `/entrypoint/gcheck.py` for the functionality described below (only for gcheck), or what is described in [grading-base].
+The cmd can be either `/entrypoint/run.py` for the functionality described below, or what is described in [grading-base].
 
 [grading-base]: https://github.com/apluslms/grading-base
 
-# Using /entrypoint/gcheck.py
+# Using /entrypoint/run.py
 
-/entrypoint/gcheck.py is a script that handles compilation, execution, scoring, error handling and compiling HTML output for gcheck.
+/entrypoint/run.py is a script that handles compilation, execution, scoring, error handling and compiling HTML output. It is extensible using a Runner python class (see util.py and gcheck/run.py).
 
 ## CSS and JS files
 
@@ -50,6 +50,8 @@ The config file can have the following fields:
     <value>, <default>
         <explanation>
 
+    runner, "/gcheck/run.py"
+        The python file that contains the Runner class used for running and grading the program.
     max_points, None
         The maximum points given. Doesn't matter as the value is scaled to the A+ value anyway,
         So, this can be left out without worry.
@@ -112,3 +114,7 @@ Submitted files are assumed to be C++ or C files if they end in .cpp or .c, resp
 1. Create a new image.
 2. Replace the gcheck.env to change the default flags. Replace the files in the templates directory to change the HTML templates. To change anything else you need to modify the entry script.
 3. Specify the new image for the exercise in A+.
+
+## Making your own Runner
+
+Take the gcheck/run.py as an example, and work from there. You can either create a new docker image with the new runner or mount it to the grade-c and use `/exercise/...` to refer to the runner in the config.
